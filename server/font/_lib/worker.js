@@ -18,6 +18,7 @@ var svg2ttf  = require('svg2ttf');
 var jade     = require('jade');
 //var AdmZip   = require('adm-zip');
 var io       = require('../../../lib/system/io');
+var SvgPath = require('../../../client/_lib/svgpath');
 
 
 var TEMPLATES_DIR = path.join(__dirname, '../../../support/font-templates');
@@ -122,6 +123,17 @@ module.exports = function fontWorker(taskInfo, callback) {
   , eot:          path.join(taskInfo.tmpDir, 'font', fontname + '.eot')
   , woff:         path.join(taskInfo.tmpDir, 'font', fontname + '.woff')
   };
+
+  // Translate single SVG image coords to font coords
+
+  taskInfo.builderConfig.glyphs = _.map(taskInfo.builderConfig.glyphs, function (glyph) {
+    glyph.d = new SvgPath(glyph.d)
+      .scale(1, -1)
+      .translate(0, 850)
+      .toFixed(1)
+      .toString();
+    return glyph;
+  });
 
   // Generate initial SVG font.
 

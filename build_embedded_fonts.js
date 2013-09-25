@@ -182,15 +182,11 @@ _.forEach(args.input_fonts, function(fontDir) {
     var file_name = path.join(fontDir, 'src', 'svg', glyph_data.css + '.svg');
     var svg = parseSvgImage(fs.readFileSync(file_name, 'utf8'), file_name);
 
-    var transform =
-     'translate(0, -150) ' +
-     'translate(0 500) scale(1 -1) translate(0 -500)';
-
     glyph_data.svg.file = svgImageTemplate({
       height : svg.height,
       width  : svg.width,
       d      : svg.d,
-      transform : svg.transform ? transform + ' ' + svg.transform : transform
+      transform : ''
     });
 
     configServer.uids[glyph.uid] = _.clone(glyph_data, true);
