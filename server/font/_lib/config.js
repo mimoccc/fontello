@@ -51,18 +51,89 @@
 
 
 var _ = require('lodash');
+var revalidator = require('revalidator');
+
 
 
 var fontConfigs = require('../../../lib/embedded_fonts/server_config');
 
-var customIcons = 'custom_icons';
+var customIconsName = 'custom_icons';
+
+function isValidConfig(clientConfig) {
+  var config_schema = {
+    properties: {
+      css_prefix_text: {
+        type: 'string',
+        required: true
+      },
+      css_use_suffix: {
+        type: 'boolean',
+        required: true
+      },
+      hinting: {
+        type: 'boolean',
+        required: true
+      },
+      name: {
+        type: 'string',
+        required: true
+      },
+      glyphs: {
+        type: 'array',
+        required: true
+      }
+    }
+  };
+
+  var glyph_schema = {
+    properties: {
+      uid: {
+        type: 'string',
+        maxLength: 32,
+        minLength: 32,
+        required: true
+      },
+      code: {
+        type: 'integer',
+        required: true
+      },
+      src: {
+        type: 'string',
+        required: true
+      },
+      svg: {
+        type: 'object',
+        properties: {
+          path: {
+            path: 'string',
+            required: true
+          },
+          width: {
+            type: 'integer',
+            required: true
+          }
+        }
+      }
+    }
+  };
+
+  var result = revalidator.validate(clientConfig, config_schema);
+  if (!result.valid) { return false; }
+
+  _.forEach(clientConfig.glyphs, function (glyph) {
+    result = revalidator.validate(glyph, glyph_schema);
+    if (!result.valid) { return false; }
+  });
+
+  return true;
+}
 
 function collectGlyphsInfo(input) {
   var result = [];
 
   _.forEach(input, function (inputGlyph) {
 
-    if(inputGlyph.src === customIcons) {
+    if(inputGlyph.src === customIconsName) {
       result.push({
         src:       inputGlyph.src
       , uid:       inputGlyph.uid
@@ -107,7 +178,7 @@ function collectFontsInfo(glyphs) {
   var result = [];
 
   _(glyphs).pluck('src').unique().forEach(function (fontname) {
-    if (fontname === customIcons) {
+    if (fontname === customIconsName) {
       result.push({
         // FIXME
         font : {},
@@ -136,6 +207,8 @@ module.exports = function fontConfig(clientConfig) {
   } else {
     fontname = 'fontello';
   }
+  
+  if (!isValidConfig(clientConfig)) { return null; }
 
   glyphsInfo = collectGlyphsInfo(clientConfig.glyphs);
   fontsInfo  = collectFontsInfo(glyphsInfo);
