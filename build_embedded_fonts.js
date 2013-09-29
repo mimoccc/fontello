@@ -97,6 +97,93 @@ function parseSvgImage(data, filename) {
   };
 }
 
+function commandParser(commandLine, operators) {
+  if ((!commandLine) || (commandLine === '')) { return; }
+  if ((!operators) || operators.length) { return; }
+
+  function OperatorModel(operatorCallbacks) {
+    OperatorModel.operators = operatorCallbacks;
+    OperatorModel.operationLine = '';
+    OperatorModel.argsLine = '';
+    
+    OperatorModel.appendArgStr = function (chr) {
+      OperatorModel.argsLine += chr;
+    };
+    
+    OperatorModel.appendName = function (chr) {
+      OperatorModel.operationLine += chr;
+    };
+    
+    function wash(str, NotAllowChrs) {
+      var res = '';
+      for (var i = 0; i < str.length; i++) {
+        var ok = true;
+        for (var j = 0; j < NotAllowChrs.length; j++) {
+          if (str[i] === NotAllowChrs[j]) {
+            ok = false;
+            break;
+          }
+        }
+        if (ok) { res += str[i]; }
+      }
+      return res;
+    }
+    
+    OperatorModel.execute = function () {
+      var operation = wash(OperatorModel.operationLine, '()[]{}"\'\\/|!@#$%^&*+=-:;,.?<>\n\t ');
+      OperatorModel.argsLine = wash(OperatorModel.argsLine, '()[]{}"\'\\/|!@#$%^&*+=-:;?<>');
+
+      var splited = OperatorModel.argsLine.split(/[\s,]/);
+      var args = [];
+
+      for (var i = 0; i < splited.length; i++) {
+        var val = parseInt(splited[i], 10);
+        if (val === val) { args.push(val); }
+      }
+
+      for (var key in OperatorModel.operators) {
+        if (key === operation) {
+          OperatorModel.operators[key](args);
+        }
+      }
+    };
+  }
+
+  var bkt = 0; // bracket index
+  var transporter = [new OperatorModel(operators)];
+  // main loop
+  for (var i = 0; i < commandLine.length; i++) {
+    var c = commandLine[i];
+    
+    if (c === '(') {
+      bkt++;
+      continue;
+    }
+    if (c === ')') {
+      bkt--;
+      transporter.push(new OperatorModel(operators));
+      continue;
+    }
+    
+    var operator = transporter[transporter.length - 1];
+    
+    switch (bkt) {
+    case 0: // operator
+      operator.appendName(c);
+      break;
+    case 1:  // arguments
+      operator.appendArgStr(c);
+      break;
+    default : // error
+      throw 'Bad format the command line';
+    }
+  }
+
+  for (var index in transporter) {
+    transporter[index].execute();
+  }
+}
+
 
 var parser = new ArgumentParser({
   addHelp: true,
@@ -174,15 +261,24 @@ _.forEach(args.input_fonts, function(fontDir) {
     var file_name = path.join(fontDir, 'src', 'svg', glyph_data.css + '.svg');
     var svg = parseSvgImage(fs.readFileSync(file_name, 'utf8'), file_name);
 
-    // FIXME: Apply transform from svg file. Now we understand
-    // pure paths only.
     var scale = 1000 / svg.height;
 
     glyph_data.svg.width = +(svg.width * scale).toFixed(1);
-    glyph_data.svg.d = new SvgPath(svg.d)
-                            .scale(scale)
-                            .abs().round(0).rel()
-                            .toString();
+    var svgPath = new SvgPath(svg.d).scale(scale);
+   
+    // Apply transform from svg file. Now we understand
+    // pure paths only.
+    var operators = [];
+    operators.scale = function (args) {
+      svgPath.scale(args[0], args[1]);
+    };
+    operators.translate = function (args) {
+      svgPath.translate(args[0], args[1]);
+    };
+
+    commandParser(svg.transform, operators);
+
+    glyph_data.svg.d = svgPath.abs().round(0).rel().toString();
 
     configServer.uids[glyph.uid] = _.clone(glyph_data, true);
   });
