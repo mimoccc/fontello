@@ -17,39 +17,25 @@ module.exports = {
     glyphs: {
       type: 'array',
       minItems: 1,
-      items: [
-        // embedded glyph schema
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            uid:  { type: 'string',  required: true },
-            css:  { type: 'string',  required: true },
-            code: { type: 'integer', required: true, minimum: 1 },
-            src:  { type: 'string',  required: true },
-          }
-        },
-        // custom icon schema
-        {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            uid:  { type: 'string',  required: true },
-            css:  { type: 'string',  required: true },
-            code: { type: 'integer', required: true,  minimum: 1 },
-            src:  { type: 'string',  required: true,  pattern: /^custom_icons$/ },
-            svg: {
-              type: 'object',
-              required: true,
-              additionalProperties: false,
-              properties: {
-                path:   { type: 'string',  required: true },
-                width:  { type: 'integer', required: true,  minimum: 10 },
-              }
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          uid:       { type: 'string',  required: true },
+          css:       { type: 'string',  required: true },
+          code:      { type: 'integer', required: true, minimum: 1 },
+          src:       { type: 'string',  required: true },
+          selected:  { type: 'boolean'},
+          svg: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              path:   { type: 'string',  required: true },
+              width:  { type: 'integer', required: true,  minimum: 10 }
             }
           }
         }
-      ]
+      }
     }
   }
 };

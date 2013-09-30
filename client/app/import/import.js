@@ -166,7 +166,7 @@ function import_svg_font(data) {
         charRef: allocatedRefCode++,
         svg: {
           path:  d,
-          width: width
+          width: Math.round(width)
         }
       })
     );
